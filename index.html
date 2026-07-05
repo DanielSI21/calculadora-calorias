@@ -86,8 +86,16 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:'Manrope',syste
 .gsub{font-size:11.5px;color:var(--muted);margin:4px 0 0}
 .adjusts{display:flex;flex-wrap:wrap;gap:10px;animation:sIn .4s cubic-bezier(.16,1,.3,1) both}
 .adjust{cursor:pointer;min-width:64px;height:48px;padding:0 18px;border-radius:999px;border:1.5px solid var(--border);background:rgba(255,255,255,.7);font-family:inherit;font-size:15px;font-weight:800;color:var(--muted);transition:all .28s cubic-bezier(.16,1,.3,1)}
-.adjust:hover{transform:translateY(-2px)}
-.adjust.sel{border-color:var(--primary);background:var(--primary);color:#fff;box-shadow:0 8px 20px rgba(92,100,48,.28)}
+.rangebox{background:rgba(255,255,255,.62);border:1.5px solid var(--border);border-radius:18px;padding:18px 20px 20px}
+.rangelabel{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.rangelabel span:first-child{font-size:14px;font-weight:800;color:var(--text)}
+.rangeval{font-size:18px;font-weight:800;color:var(--primary);font-variant-numeric:tabular-nums}
+.rangeinput{width:100%;height:8px;border-radius:999px;appearance:none;-webkit-appearance:none;background:linear-gradient(90deg,var(--primary) var(--pct-fill, 0%),var(--border) var(--pct-fill, 0%));outline:none;cursor:pointer}
+.rangeinput::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:26px;height:26px;border-radius:50%;background:#fff;border:6px solid var(--primary);box-shadow:0 5px 14px rgba(92,100,48,.28);transition:transform .2s}
+.rangeinput::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fff;border:6px solid var(--primary);box-shadow:0 5px 14px rgba(92,100,48,.28);transition:transform .2s}
+.rangeinput:hover::-webkit-slider-thumb{transform:scale(1.08)}
+.rangeinput:hover::-moz-range-thumb{transform:scale(1.08)}
+.rangemarks{display:flex;justify-content:space-between;margin-top:10px;font-size:11.5px;font-weight:700;color:var(--muted)}
 .toggle{display:flex;align-items:center;gap:13px;margin:6px 0 20px;padding:14px 18px;background:rgba(255,255,255,.5);border:1.5px solid var(--border);border-radius:18px;cursor:pointer;width:100%;text-align:left;font:inherit;color:inherit}
 .sw{flex:none;width:48px;height:28px;border-radius:99px;background:var(--border);position:relative;transition:background .3s}
 .sw::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .3s cubic-bezier(.16,1,.3,1)}
@@ -114,7 +122,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:'Manrope',syste
 .rk{font-size:14.5px;font-weight:600;color:var(--muted)}
 .rv{font-size:16px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums}
 .rv.hi{color:var(--primary)}
-.method:focus-visible,.opt:focus-visible,.goal:focus-visible,.adjust:focus-visible,.segb:focus-visible,.toggle:focus-visible,.btn:focus-visible,.input:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.method:focus-visible,.opt:focus-visible,.goal:focus-visible,.adjust:focus-visible,.rangeinput:focus-visible,.segb:focus-visible,.toggle:focus-visible,.btn:focus-visible,.input:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 @media (max-width:640px){.wrap{padding:6px 14px 60px}.htitle{font-size:30px}.hsub{font-size:15px;margin-bottom:22px}.card{padding:24px 20px 24px;border-radius:28px}.grid2{grid-template-columns:1fr}.goals{grid-template-columns:1fr}.dcap{display:none}.stitle{font-size:20px}.rnum{font-size:48px}.nav{flex-direction:column-reverse}.prev,.next{width:100%;flex:none;min-height:56px}}
 </style>
 </head>
@@ -222,7 +230,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:'Manrope',syste
 
   function canProceedStep3(){
     if (!state.activity || !state.goal) return false;
-    if ((state.goal === 'deficit' || state.goal === 'superavit') && !state.adjustPct) return false;
+    if ((state.goal === 'deficit' || state.goal === 'superavit') && state.adjustPct === null) return false;
     return true;
   }
 
@@ -343,10 +351,15 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:'Manrope',syste
         '<span class="ofac">×' + a.value + '</span></button>';
     }).join('');
     var showAdjust = state.goal === 'deficit' || state.goal === 'superavit';
-    var adjustHtml = [5, 10, 15, 20, 25].map(function(p){
-      var sel = state.adjustPct === p;
-      return '<button type="button" class="adjust' + (sel ? ' sel' : '') + '" data-pct="' + p + '" aria-pressed="' + sel + '">' + p + '%</button>';
-    }).join('');
+    var pct = state.adjustPct === null ? 10 : state.adjustPct;
+    var adjustHtml = '<div class="rangebox">' +
+      '<label class="rangelabel" for="adjustRange">' +
+        '<span>Ajuste elegido</span>' +
+        '<span class="rangeval" id="adjustPctLabel">' + pct + '%</span>' +
+      '</label>' +
+      '<input class="rangeinput" id="adjustRange" type="range" min="0" max="100" step="1" value="' + pct + '" style="--pct-fill:' + pct + '%">' +
+      '<div class="rangemarks" aria-hidden="true"><span>0%</span><span>50%</span><span>100%</span></div>' +
+    '</div>';
     return '' +
       '<p class="slabel">Paso 3</p>' +
       '<h2 class="stitle">Actividad y objetivo</h2>' +
@@ -359,7 +372,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:'Manrope',syste
         '<button type="button" class="goal' + (state.goal === 'superavit' ? ' sel' : '') + '" id="goalSup" aria-pressed="' + (state.goal === 'superavit') + '"><p class="gname">Superávit</p><p class="gsub">Ganar músculo</p></button>' +
       '</div>' +
       (showAdjust ?
-        '<div><div class="subh" id="pctLabel">Porcentaje de ajuste</div><div class="adjusts" role="group" aria-labelledby="pctLabel">' + adjustHtml + '</div></div>'
+        '<div><div class="subh" id="pctLabel">Porcentaje de ajuste</div>' + adjustHtml + '</div>'
         : '');
   }
 
@@ -465,11 +478,17 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:'Manrope',syste
         btn.addEventListener('click', function(){ state.activity = parseFloat(btn.getAttribute('data-activity')); refresh(); });
       });
       wrap.querySelector('#goalMaint').addEventListener('click', function(){ state.goal = 'mantenimiento'; refresh(); });
-      wrap.querySelector('#goalDef').addEventListener('click', function(){ state.goal = 'deficit'; refresh(); });
-      wrap.querySelector('#goalSup').addEventListener('click', function(){ state.goal = 'superavit'; refresh(); });
-      Array.prototype.forEach.call(wrap.querySelectorAll('[data-pct]'), function(btn){
-        btn.addEventListener('click', function(){ state.adjustPct = parseInt(btn.getAttribute('data-pct'), 10); refresh(); });
-      });
+      wrap.querySelector('#goalDef').addEventListener('click', function(){ state.goal = 'deficit'; if (state.adjustPct === null) state.adjustPct = 10; refresh(); });
+      wrap.querySelector('#goalSup').addEventListener('click', function(){ state.goal = 'superavit'; if (state.adjustPct === null) state.adjustPct = 10; refresh(); });
+      var range = wrap.querySelector('#adjustRange');
+      if (range) {
+        range.addEventListener('input', function(e){
+          state.adjustPct = parseInt(e.target.value, 10);
+          e.target.style.setProperty('--pct-fill', state.adjustPct + '%');
+          var label = wrap.querySelector('#adjustPctLabel');
+          if (label) label.textContent = state.adjustPct + '%';
+        });
+      }
     }
   }
 
