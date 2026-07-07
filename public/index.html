@@ -91,6 +91,16 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:'Manrope',syste
 .adjust{cursor:pointer;min-width:64px;height:48px;padding:0 18px;border-radius:999px;border:1.5px solid var(--border);background:rgba(255,255,255,.7);font-family:inherit;font-size:15px;font-weight:800;color:var(--muted);transition:all .28s cubic-bezier(.16,1,.3,1)}
 .adjust:hover{transform:translateY(-2px)}
 .adjust.sel{border-color:var(--primary);background:var(--primary);color:#fff;box-shadow:0 8px 20px rgba(92,100,48,.28)}
+.rangebox{background:rgba(255,255,255,.62);border:1.5px solid var(--border);border-radius:18px;padding:18px 20px 20px}
+.rangelabel{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.rangelabel span:first-child{font-size:14px;font-weight:800;color:var(--text)}
+.rangeval{font-size:18px;font-weight:800;color:var(--primary);font-variant-numeric:tabular-nums}
+.rangeinput{width:100%;height:8px;border-radius:999px;appearance:none;-webkit-appearance:none;background:linear-gradient(90deg,var(--primary) var(--pct-fill, 0%),var(--border) var(--pct-fill, 0%));outline:none;cursor:pointer}
+.rangeinput::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:26px;height:26px;border-radius:50%;background:#fff;border:6px solid var(--primary);box-shadow:0 5px 14px rgba(92,100,48,.28);transition:transform .2s}
+.rangeinput::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fff;border:6px solid var(--primary);box-shadow:0 5px 14px rgba(92,100,48,.28);transition:transform .2s}
+.rangeinput:hover::-webkit-slider-thumb{transform:scale(1.08)}
+.rangeinput:hover::-moz-range-thumb{transform:scale(1.08)}
+.rangemarks{display:flex;justify-content:space-between;margin-top:10px;font-size:11.5px;font-weight:700;color:var(--muted)}
 .toggle{display:flex;align-items:center;gap:13px;margin:6px 0 20px;padding:14px 18px;background:rgba(255,255,255,.5);border:1.5px solid var(--border);border-radius:18px;cursor:pointer;width:100%;text-align:left;font:inherit;color:inherit}
 .sw{flex:none;width:48px;height:28px;border-radius:99px;background:var(--border);position:relative;transition:background .3s}
 .sw::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .3s cubic-bezier(.16,1,.3,1)}
