@@ -63,6 +63,8 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:'Manrope',syste
 .input:focus{border-color:var(--primary);background:#fff;box-shadow:0 0 0 4px rgba(92,100,48,.13),0 4px 16px rgba(92,100,48,.08)}
 .input.err{border-color:var(--error);background:#fff}
 .input.err:focus{box-shadow:0 0 0 4px var(--error-bg),0 4px 16px rgba(179,38,30,.08)}
+.select{appearance:none;-webkit-appearance:none;cursor:pointer;padding-right:48px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.selectwrap::after{content:'';position:absolute;top:50%;right:22px;width:9px;height:9px;border-right:2px solid var(--primary);border-bottom:2px solid var(--primary);transform:translateY(-70%) rotate(45deg);pointer-events:none}
 .unit{position:absolute;right:22px;font-size:14px;font-weight:600;color:var(--muted);pointer-events:none}
 .input.hasunit{padding-right:56px}
 .ferr{max-height:0;opacity:0;overflow:hidden;color:var(--error);font-size:12.5px;font-weight:700;padding-left:4px;transition:all .25s ease}
@@ -78,6 +80,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:'Manrope',syste
 .odesc{font-size:12.5px;color:var(--muted);margin:2px 0 0}
 .ofac{flex:none;font-size:13px;font-weight:800;color:var(--primary);background:var(--soft);border-radius:99px;padding:6px 13px}
 .subh{font-size:14px;font-weight:800;margin:26px 0 13px;padding-left:4px;letter-spacing:-.2px}
+.activity-summary{margin-top:14px;background:var(--soft);border-radius:16px}
 .goals{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 .goal{cursor:pointer;background:rgba(255,255,255,.62);border:1.5px solid var(--border);border-radius:20px;padding:18px 12px;text-align:center;transition:all .28s cubic-bezier(.16,1,.3,1);font:inherit;color:inherit}
 .goal:hover{transform:translateY(-2px)}
@@ -162,7 +165,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:'Manrope',syste
     method: null,
     sex: null, weight: '', height: '', age: '',
     leanMass: '', bodyFat: '', useBF: false,
-    activity: null, goal: null, adjustPct: null,
+    lifestyleFactor: null, exerciseFactor: null, goal: null, adjustPct: null,
     errors: {}
   };
 
@@ -170,10 +173,16 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:'Manrope',syste
 
   function num(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
   function fmt(n){ return Math.round(n).toLocaleString('es-MX'); }
+  function fmtFactor(n){ return (Math.round(n * 100) / 100).toFixed(2).replace(/\.?0+$/, ''); }
 
   function effLean(){
     if (state.useBF) return num(state.weight) * (1 - num(state.bodyFat) / 100);
     return num(state.leanMass);
+  }
+
+  function activityFactor(){
+    if (state.lifestyleFactor === null || state.exerciseFactor === null) return 0;
+    return num(state.lifestyleFactor) + num(state.exerciseFactor);
   }
 
   function compute(){
@@ -185,7 +194,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:'Manrope',syste
       tmb = 370 + (21.6 * effLean());
     }
     tmb = Math.max(0, tmb);
-    var factor = state.activity || 0;
+    var factor = activityFactor();
     var cal = tmb * factor;
     var eta = tmb * 0.10;
     var maint = cal + eta;
@@ -194,7 +203,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:'Manrope',syste
     var fin = maint;
     if (state.goal === 'deficit') fin = maint - ajuste;
     else if (state.goal === 'superavit') fin = maint + ajuste;
-    return { tmb: tmb, cal: cal, eta: eta, maint: maint, ajuste: ajuste, fin: fin, pct: pct };
+    return { tmb: tmb, factor: factor, cal: cal, eta: eta, maint: maint, ajuste: ajuste, fin: fin, pct: pct };
   }
 
   function validateField(key){
@@ -229,7 +238,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:'Manrope',syste
   }
 
   function canProceedStep3(){
-    if (!state.activity || !state.goal) return false;
+    if (state.lifestyleFactor === null || state.exerciseFactor === null || !state.goal) return false;
     if ((state.goal === 'deficit' || state.goal === 'superavit') && state.adjustPct === null) return false;
     return true;
   }
@@ -335,21 +344,33 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:'Manrope',syste
     return '';
   }
 
-  var ACTIVITY_DEFS = [
-    { value: 1.2, label: 'Sedentario', desc: 'Poco o nada de ejercicio' },
-    { value: 1.375, label: 'Ligero', desc: 'Ejercicio 1–3 días / semana' },
-    { value: 1.55, label: 'Moderado', desc: 'Ejercicio 3–5 días / semana' },
-    { value: 1.725, label: 'Intenso', desc: 'Ejercicio 6–7 días / semana' },
-    { value: 1.9, label: 'Muy intenso', desc: 'Trabajo físico o 2× al día' }
+  var LIFESTYLE_DEFS = [
+    { value: 0.6, label: 'Sedentario', desc: 'Trabajo de escritorio' },
+    { value: 0.7, label: 'Actividad física ligera', desc: 'De pie y caminar poco durante el día' },
+    { value: 0.8, label: 'Actividad moderada', desc: 'De pie y caminar la mayor parte del día' },
+    { value: 0.9, label: 'Actividad alta', desc: 'Casi todo el día de pie' },
+    { value: 1.0, label: 'Actividad extrema', desc: 'Trabajo físico intenso o construcción' }
   ];
 
-  function buildStep3(){
-    var activityHtml = ACTIVITY_DEFS.map(function(a){
-      var sel = state.activity === a.value;
-      return '<button type="button" class="opt' + (sel ? ' sel' : '') + '" data-activity="' + a.value + '" aria-pressed="' + sel + '">' +
-        '<span><p class="oname">' + a.label + '</p><p class="odesc">' + a.desc + '</p></span>' +
-        '<span class="ofac">×' + a.value + '</span></button>';
+  var EXERCISE_DEFS = [
+    { value: 0.55, label: 'Sedentario', desc: 'No haces ejercicio' },
+    { value: 0.65, label: 'Ejercicio ligero', desc: 'Algo de cardio algunos días a la semana' },
+    { value: 0.75, label: 'Ejercicio moderado', desc: 'Varios días con algo de pesas' },
+    { value: 0.85, label: 'Ejercicio intenso', desc: 'Pesas al menos 5 días a la semana' },
+    { value: 0.95, label: 'Ejercicio extremo', desc: 'Más de 2 horas todos los días' }
+  ];
+
+  function buildActivityOptions(defs, selected){
+    return '<option value="">Selecciona una opción</option>' + defs.map(function(a){
+      var sel = selected === a.value;
+      return '<option value="' + a.value + '"' + (sel ? ' selected' : '') + '>' +
+        a.label + ' · ' + a.desc + ' (' + fmtFactor(a.value) + ')' +
+      '</option>';
     }).join('');
+  }
+
+  function buildStep3(){
+    var factor = activityFactor();
     var showAdjust = state.goal === 'deficit' || state.goal === 'superavit';
     var pct = state.adjustPct === null ? 10 : state.adjustPct;
     var adjustHtml = '<div class="rangebox">' +
@@ -357,14 +378,26 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:'Manrope',syste
         '<span>Ajuste elegido</span>' +
         '<span class="rangeval" id="adjustPctLabel">' + pct + '%</span>' +
       '</label>' +
-      '<input class="rangeinput" id="adjustRange" type="range" min="0" max="100" step="1" value="' + pct + '" style="--pct-fill:' + pct + '%">' +
+      '<input class="rangeinput" id="adjustRange" type="range" min="0" max="100" step="5" value="' + pct + '" style="--pct-fill:' + pct + '%">' +
       '<div class="rangemarks" aria-hidden="true"><span>0%</span><span>50%</span><span>100%</span></div>' +
     '</div>';
     return '' +
       '<p class="slabel">Paso 3</p>' +
       '<h2 class="stitle">Actividad y objetivo</h2>' +
       '<div class="subh" id="actLabel">Factor de actividad</div>' +
-      '<div class="opts" role="group" aria-labelledby="actLabel">' + activityHtml + '</div>' +
+      '<div class="grid2" aria-labelledby="actLabel">' +
+        '<div class="field">' +
+          '<label class="flabel" for="lifestyleFactor">Estilo de vida</label>' +
+          '<div class="iwrap selectwrap"><select class="input select" id="lifestyleFactor">' + buildActivityOptions(LIFESTYLE_DEFS, state.lifestyleFactor) + '</select></div>' +
+        '</div>' +
+        '<div class="field">' +
+          '<label class="flabel" for="exerciseFactor">Actividad física</label>' +
+          '<div class="iwrap selectwrap"><select class="input select" id="exerciseFactor">' + buildActivityOptions(EXERCISE_DEFS, state.exerciseFactor) + '</select></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="rrow activity-summary">' +
+        '<span class="rk">Factor general de actividad</span><span class="rv hi">' + (factor > 0 ? '×' + fmtFactor(factor) : '—') + '</span>' +
+      '</div>' +
       '<div class="subh" id="goalLabelH">Objetivo</div>' +
       '<div class="goals" role="group" aria-labelledby="goalLabelH">' +
         '<button type="button" class="goal' + (state.goal === 'mantenimiento' ? ' sel' : '') + '" id="goalMaint" aria-pressed="' + (state.goal === 'mantenimiento') + '"><p class="gname">Mantenimiento</p><p class="gsub">Conservar peso</p></button>' +
@@ -388,6 +421,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:'Manrope',syste
     var rows = [
       { k: 'Método utilizado', v: methodLabel },
       { k: 'TMB (metabolismo basal)', v: fmt(c.tmb) + ' kcal' },
+      { k: 'Factor de actividad', v: '×' + fmtFactor(c.factor) },
       { k: 'Calorías con actividad', v: fmt(c.cal) + ' kcal' },
       { k: 'ETA (termogénesis 10%)', v: '+' + fmt(c.eta) + ' kcal' },
       { k: 'Calorías de mantenimiento', v: fmt(c.maint) + ' kcal', hi: true },
@@ -474,8 +508,13 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:'Manrope',syste
         }
       }
     } else if (step === 3) {
-      Array.prototype.forEach.call(wrap.querySelectorAll('[data-activity]'), function(btn){
-        btn.addEventListener('click', function(){ state.activity = parseFloat(btn.getAttribute('data-activity')); refresh(); });
+      wrap.querySelector('#lifestyleFactor').addEventListener('change', function(e){
+        state.lifestyleFactor = e.target.value === '' ? null : parseFloat(e.target.value);
+        refresh();
+      });
+      wrap.querySelector('#exerciseFactor').addEventListener('change', function(e){
+        state.exerciseFactor = e.target.value === '' ? null : parseFloat(e.target.value);
+        refresh();
       });
       wrap.querySelector('#goalMaint').addEventListener('click', function(){ state.goal = 'mantenimiento'; refresh(); });
       wrap.querySelector('#goalDef').addEventListener('click', function(){ state.goal = 'deficit'; if (state.adjustPct === null) state.adjustPct = 10; refresh(); });
@@ -564,7 +603,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:'Manrope',syste
   function resetAll(){
     state.method = null; state.sex = null; state.weight = ''; state.height = ''; state.age = '';
     state.leanMass = ''; state.bodyFat = ''; state.useBF = false;
-    state.activity = null; state.goal = null; state.adjustPct = null; state.errors = {};
+    state.lifestyleFactor = null; state.exerciseFactor = null; state.goal = null; state.adjustPct = null; state.errors = {};
     navigateTo(1, -1);
   }
 
